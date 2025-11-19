@@ -17,7 +17,6 @@
 
 #include <memory>
 #include <string>
-#include <optional>
 #include <rclcpp/executors.hpp>
 #include <rclcpp/allocator/allocator_common.hpp>
 #include "behaviortree_cpp/action_node.h"
@@ -104,10 +103,6 @@ public:
    * @brief Any subclass of RosActionNode that has ports must implement a
    * providedPorts method and call providedBasicPorts in it.
    *
-   * The basic ports:
-   *
-   * - `action_name` Action server name
-   *
    * @param addition Additional ports to add to BT port list
    * @return PortsList containing basic ports along with node-specific ports
    */
@@ -157,15 +152,8 @@ public:
   }
 
   /** Callback invoked when something goes wrong.
-   * The result is provided if it is available.
    * It must return either SUCCESS or FAILURE.
    */
-  virtual BT::NodeStatus onFailure(ActionNodeErrorCode error,
-                                   const std::optional<WrappedResult>&)
-  {
-    return onFailure(error);
-  }
-
   virtual BT::NodeStatus onFailure(ActionNodeErrorCode /*error*/)
   {
     return NodeStatus::FAILURE;
@@ -256,7 +244,7 @@ RosActionNode<T>::ActionClientInstance::ActionClientInstance(
     std::shared_ptr<rclcpp::Node> node, const std::string& action_name)
 {
   callback_group =
-      node->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive, false);
+      node->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
   callback_executor.add_callback_group(callback_group, node->get_node_base_interface());
   action_client = rclcpp_action::create_client<T>(node, action_name, callback_group);
 }
@@ -321,7 +309,7 @@ inline bool RosActionNode<T>::createClient(const std::string& action_name)
   if(it == registry.end() || it->second.expired())
   {
     client_instance_ = std::make_shared<ActionClientInstance>(node, action_name);
-    registry.insert_or_assign(action_client_key_, client_instance_);
+    registry.insert({ action_client_key_, client_instance_ });
   }
   else
   {
@@ -372,8 +360,8 @@ inline NodeStatus RosActionNode<T>::tick()
 
   if(!client_instance_)
   {
-    throw BT::RuntimeError("RosActionNode: no client was specified, neither as default "
-                           "nor in the ports");
+    throw BT::RuntimeError("RosActionNode: no client was specified neither as default or "
+                           "in the ports");
   }
 
   auto& action_client = client_instance_->action_client;
@@ -402,7 +390,7 @@ inline NodeStatus RosActionNode<T>::tick()
 
     if(!setGoal(goal))
     {
-      return CheckStatus(onFailure(INVALID_GOAL, {}));
+      return CheckStatus(onFailure(INVALID_GOAL));
     }
 
     typename ActionClient::SendGoalOptions goal_options;
@@ -434,7 +422,6 @@ inline NodeStatus RosActionNode<T>::tick()
           if(!goal_handle_)
           {
             RCLCPP_ERROR(logger(), "Goal was rejected by server");
-            return onFailure(GOAL_REJECTED_BY_SERVER);
           }
           else
           {
@@ -445,7 +432,7 @@ inline NodeStatus RosActionNode<T>::tick()
     // Check if server is ready
     if(!action_client->action_server_is_ready())
     {
-      return onFailure(SERVER_UNREACHABLE, {});
+      return onFailure(SERVER_UNREACHABLE);
     }
 
     future_goal_handle_ = action_client->async_send_goal(goal, goal_options);
@@ -472,7 +459,7 @@ inline NodeStatus RosActionNode<T>::tick()
       {
         if((now() - time_goal_sent_) > timeout)
         {
-          return CheckStatus(onFailure(SEND_GOAL_TIMEOUT, {}));
+          return CheckStatus(onFailure(SEND_GOAL_TIMEOUT));
         }
         else
         {
@@ -503,11 +490,11 @@ inline NodeStatus RosActionNode<T>::tick()
     {
       if(result_.code == rclcpp_action::ResultCode::ABORTED)
       {
-        return CheckStatus(onFailure(ACTION_ABORTED, result_));
+        return CheckStatus(onFailure(ACTION_ABORTED));
       }
       else if(result_.code == rclcpp_action::ResultCode::CANCELED)
       {
-        return CheckStatus(onFailure(ACTION_CANCELLED, result_));
+        return CheckStatus(onFailure(ACTION_CANCELLED));
       }
       else
       {

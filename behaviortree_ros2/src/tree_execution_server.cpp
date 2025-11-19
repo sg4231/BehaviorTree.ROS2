@@ -21,13 +21,12 @@
 #endif
 
 // auto-generated header, created by generate_parameter_library
-#include "behaviortree_ros2/bt_executor_parameters.hpp"
+// #include "behaviortree_ros2/bt_executor_parameters.hpp"
+#include "bt_executor_parameters.hpp"
 #include "behaviortree_ros2/tree_execution_server.hpp"
 #include "behaviortree_ros2/bt_utils.hpp"
 
 #include "behaviortree_cpp/loggers/groot2_publisher.h"
-
-#include "btcpp_ros2_interfaces/srv/get_trees.hpp"
 
 namespace
 {
@@ -37,8 +36,6 @@ static const auto kLogger = rclcpp::get_logger("bt_action_server");
 namespace BT
 {
 
-using GetTrees = btcpp_ros2_interfaces::srv::GetTrees;
-
 struct TreeExecutionServer::Pimpl
 {
   rclcpp_action::Server<ExecuteTree>::SharedPtr action_server;
@@ -46,8 +43,6 @@ struct TreeExecutionServer::Pimpl
 
   std::shared_ptr<bt_server::ParamListener> param_listener;
   bt_server::Params params;
-
-  rclcpp::Service<GetTrees>::SharedPtr get_trees_service;
 
   BT::BehaviorTreeFactory factory;
   std::shared_ptr<BT::Groot2Publisher> groot_publisher;
@@ -93,12 +88,6 @@ TreeExecutionServer::TreeExecutionServer(const rclcpp::Node::SharedPtr& node)
     // we must cancel the timer after the first execution
     p_->single_shot_timer->cancel();
   };
-
-  p_->get_trees_service = node_->create_service<GetTrees>(
-      "get_loaded_trees", [this](const std::shared_ptr<GetTrees::Request> _,
-                                 std::shared_ptr<GetTrees::Response> response) {
-        response->tree_ids = p_->factory.registeredBehaviorTrees();
-      });
 
   p_->single_shot_timer =
       node_->create_wall_timer(std::chrono::milliseconds(1), callback);

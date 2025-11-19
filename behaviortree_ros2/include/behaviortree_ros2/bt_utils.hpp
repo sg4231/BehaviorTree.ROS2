@@ -11,8 +11,6 @@
 // COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-#pragma once
-
 #include <functional>
 #include <memory>
 #include <thread>
@@ -22,7 +20,8 @@
 #include "behaviortree_cpp/bt_factory.h"
 
 // auto-generated header, created by generate_parameter_library
-#include "behaviortree_ros2/bt_executor_parameters.hpp"
+// #include "behaviortree_ros2/bt_executor_parameters.hpp"
+#include "bt_executor_parameters.hpp"
 #include "behaviortree_ros2/plugins.hpp"
 #include "behaviortree_ros2/ros_node_params.hpp"
 
